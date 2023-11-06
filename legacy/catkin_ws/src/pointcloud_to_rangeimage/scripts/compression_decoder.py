@@ -1,6 +1,5 @@
 import tensorflow as tf
 import rospy
-# TODO: Replace by range_image_compression package imports
 from architectures import additive_lstm, additive_lstm_demo, additive_lstm_slim, oneshot_lstm, additive_gru, image_compression
 
 physical_devices = tf.config.list_physical_devices('GPU')
@@ -17,21 +16,21 @@ if rospy.get_param("/rnn_compression/mixed_precision"):
 def main():
     method = rospy.get_param("/compression_method")
     if method == "image_compression":
-        encoder = image_compression.MsgEncoder()
+        decoder = image_compression.MsgDecoder()
     elif method == "additive_lstm":
-        encoder = additive_lstm.MsgEncoder()
+        decoder = additive_lstm.MsgDecoder()
     elif method == "additive_lstm_slim":
-        encoder = additive_lstm_slim.MsgEncoder()
+        decoder = additive_lstm_slim.MsgDecoder()
     elif method == "additive_lstm_demo":
-        encoder = additive_lstm_demo.MsgEncoder()
+        decoder = additive_lstm_demo.MsgDecoder()
     elif method == "oneshot_lstm":
-        encoder = oneshot_lstm.MsgEncoder()
+        decoder = oneshot_lstm.MsgDecoder()
     elif method == "additive_gru":
-        encoder = additive_gru.MsgEncoder()
+        decoder = additive_gru.MsgDecoder()
     else:
         raise NotImplementedError
 
-    rospy.init_node('compression_encoder', anonymous=True)
+    rospy.init_node('compression_decoder', anonymous=True)
     rospy.spin()
 
 
