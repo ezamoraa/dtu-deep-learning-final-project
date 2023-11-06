@@ -1,6 +1,5 @@
 import tensorflow as tf
 import rospy
-# TODO: Replace by range_image_compression package imports
 from architectures import additive_lstm, additive_lstm_demo, additive_lstm_slim, oneshot_lstm, additive_gru, image_compression
 
 physical_devices = tf.config.list_physical_devices('GPU')

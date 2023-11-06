@@ -1,3 +1,4 @@
-tensorflow==2.9.0
-easydict
-tensorflow-compression==2.9.0
+numpy
+tensorboard
+# tensorflow==2.14.0
+# tensorflow-compression==2.14.0
