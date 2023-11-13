@@ -5,24 +5,30 @@ import torch
 import numpy as np
 
 from torch.utils.data import DataLoader
-from torch.optim import Adam, CosineAnnealingWarmRestarts
+from torch.optim import Adam
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from torch.utils.tensorboard import SummaryWriter
 
 from .data import LidarCompressionDataset
-import models
-import configs
+from .configs import additive_lstm_cfg
+from .models import additive_lstm
 
 g_config_map = {
-    "additive_lstm": configs.additive_lstm_cfg.AdditiveLSTMConfig,
+    "additive_lstm": additive_lstm_cfg.AdditiveLSTMConfig,
 }
 g_model_map = {
-    "additive_lstm": models.additive_lstm.LidarCompressionNetwork,
+    "additive_lstm": additive_lstm.LidarCompressionNetwork,
 }
 
 def load_config_and_model(args):
     model_name = args.model.lower()
 
     cfg = g_config_map[model_name]()
+
+    # overwrite default values in config with parsed arguments
+    for key, value in vars(args).items():
+        if value:
+            setattr(cfg, key, value)
 
     model = g_model_map[model_name](
         bottleneck=cfg.bottleneck,
@@ -31,12 +37,12 @@ def load_config_and_model(args):
         input_size=cfg.crop_size
     )
     # init model
-    model(torch.zeros((
+    input = torch.zeros((
         cfg.batch_size,
+        1,
         cfg.crop_size,
-        cfg.crop_size,
-        1))
-    )
+        cfg.crop_size))
+    model(input)
     print(model)
 
     # TODO: Multi-GPU config
@@ -62,20 +68,21 @@ def train(args):
     )
 
     train_dataloader = DataLoader(train_dataset,
-                                  batch_size=cfg.train_data_loader_batch_size,
+                                  batch_size=cfg.batch_size,
                                   num_workers=cfg.data_loader_num_workers,
                                   prefetch_factor=cfg.data_loader_prefetch_factor,
                                   shuffle=True)
     val_dataloader = DataLoader(val_dataset,
-                                batch_size=cfg.val_data_loader_batch_size,
+                                batch_size=cfg.val_batch_size,
                                 num_workers=cfg.data_loader_num_workers,
                                 prefetch_factor=cfg.data_loader_prefetch_factor,
                                 shuffle=True)
 
     optimizer = Adam(model.parameters(), lr=cfg.lr_init)
     scheduler = CosineAnnealingWarmRestarts(optimizer,
-                                            T_0=cfg.max_learning_rate_epoch,
+                                            T_0=cfg.min_learning_rate_epoch,
                                             eta_min=cfg.min_learning_rate)
+    print("Learning rate initialized to {}".format(cfg.lr_init))
     writer = SummaryWriter()
 
     step = 0
@@ -96,17 +103,19 @@ def train(args):
     for epoch in range(start_epoch, cfg.epochs):
         for i, input in enumerate(train_dataloader):
             input = input.to(device)
-            output, loss = model(input)
             optimizer.zero_grad()
+            output, loss = model(input)
             loss.backward()
             optimizer.step()
             scheduler.step(epoch + i / iters)
             step += 1
 
+            print(f"Epoch: {epoch}, Step: {step}, Loss: {loss:.4f}, LR: {scheduler.get_last_lr()[0]:.6f}")
+
             # Metrics update on each training batch
             writer.add_scalar('Loss/train', loss, step)
             writer.add_scalar('MAE/train', mae(input, output), step)
-            writer.add_scalar('Learning Rate/train', scheduler.get_last_lr(), step)
+            writer.add_scalar('Learning Rate/train', scheduler.get_last_lr()[0], step)
 
             if step % cfg.val_freq == 0:
                 val_maes = []
@@ -116,6 +125,7 @@ def train(args):
                     for input in val_dataloader:
                         input = input.to(device)
                         output, loss = model(input)
+                        # multiply by batch size to account for different batch sizes
                         val_losses.append(loss * input.shape[0])
                         val_maes.append(mae(input, output) * input.shape[0])
                     model.train()
@@ -134,10 +144,11 @@ def train(args):
                 }, os.path.join(cfg.train_output_dir, f"weights_e={{epoch:05d}}.tar"))
 
         # Metrics update on each training epoch
-        input, _ = next(iter(val_dataloader))
-        output = model(input)
-        writer.add_image('Images/Input Image', input[0,:,:], epoch)
-        writer.add_image('Images/Output Image', output[0,:,:], epoch)
+        input = next(iter(val_dataloader))
+        input = input.to(device)
+        output, _ = model(input)
+        writer.add_image('Images/Input Image', input[0,:,:], epoch, dataformats='CHW')
+        writer.add_image('Images/Output Image', output[0,:,:], epoch, dataformats='CHW')
 
     torch.save(model.state_dict(), os.path.join(args.train_output_dir, 'final_model.pt'))
 

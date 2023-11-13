@@ -22,6 +22,20 @@ To install the Python package and its dependencies (the venv should be active):
 (.venv) $ pip3 install -e .
 ```
 
+To run the training script (run with --help for more details on the arguments):
+
+```console
+(.venv) $ range_image_compression_train [--arg val ...]
+```
+
+To run the Tensorboard web server to monitor the training (from same folder where the training script was run):
+
+```console
+(.venv) $ tensorboard --logdir runs/
+```
+
+Then you can open the web browser at the printed URL (http://localhost:6006/)
+
 To deactivate the virtual environment:
 
 ```console

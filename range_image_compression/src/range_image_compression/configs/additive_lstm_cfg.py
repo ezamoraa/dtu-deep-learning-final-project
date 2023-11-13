@@ -46,7 +46,6 @@ class AdditiveLSTMConfig():
         self.lr_init = 1e-4
         self.min_learning_rate = 5e-7
         self.min_learning_rate_epoch = self.epochs
-        self.max_learning_rate_epoch = 0
 
         # Network architecture
         self.bottleneck = 32

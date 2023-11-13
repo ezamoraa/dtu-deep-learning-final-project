@@ -1,6 +1,8 @@
 import os
 import glob
 import torch
+import numpy as np
+from PIL import Image
 
 from torch.utils.data import Dataset
 from torchvision.io import read_image
@@ -21,8 +23,9 @@ class LidarCompressionDataset(Dataset):
 
     def __getitem__(self, index):
         file_path = self.file_list[index]
-        image = read_image(file_path)
-        image = self.transform(image)
+        # TODO: Check if it is Ok to open these images every time, should we have them in memory?
+        image = torch.from_numpy(np.array(Image.open(file_path), dtype=np.int16)) # read_image(file_path)
+        image = torch.unsqueeze(self.transform(image), 0)
         return image
 
     def __len__(self):
