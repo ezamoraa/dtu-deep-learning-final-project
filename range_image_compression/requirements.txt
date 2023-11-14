@@ -1,4 +1,5 @@
-numpy
+numpy==1.19.5
 tensorboard
+scikit-learn
 # tensorflow==2.14.0
 # tensorflow-compression==2.14.0

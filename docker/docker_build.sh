@@ -26,4 +26,4 @@
 #  ==============================================================================
 #
 
-docker build --tag range_image_compression .
+docker build --tag ros_pytorch .
