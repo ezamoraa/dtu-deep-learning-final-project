@@ -15,6 +15,8 @@ RUN apt update
 # install ros packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-noetic-perception=1.5.0-1* \
+    rviz \
+    ros-noetic-rviz \
     python3-pip \ 
     python3-rosdep \
     python3-rosinstall \
@@ -22,8 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-wstool \
     python3-catkin-tools \
     build-essential \
-    vim \
-    && rm -rf /var/lib/apt/lists/*
+    vim 
 
 #RUN python3 -m pip install torch torchvision torchaudio pyyaml numpy 
 
@@ -47,7 +48,7 @@ RUN echo "source $CATKIN_WS/devel/setup.bash" >> ~/.bashrc
 
 
 # Clean up
-RUN apt-get clean && rm -rf /var/lib/apt/lists/
+#RUN apt-get clean && rm -rf /var/lib/apt/lists/
 
 # Start a shell by default
 CMD ["/bin/bash"]

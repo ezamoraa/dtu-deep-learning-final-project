@@ -53,4 +53,13 @@ $DIR/run-ros.sh $@
 # \
 # $DIR/run-ros.sh $@
 
+# 1  rosdep update
+# 2  rosdep install --from-paths ./src --ignore-packages-from-source
+# 3  source devel/setup.bash
+# 4  cd ..
+# 5  cd range_image_compression/
+# 6  pip3 install -e .
+# 7  cd ../catkin_ws/
+# 8  roslaunch pointcloud_to_rangeimage compression.launch
+
 

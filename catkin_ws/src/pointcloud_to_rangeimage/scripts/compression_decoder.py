@@ -1,6 +1,6 @@
 #import tensorflow as tf
 import rospy
-from models import demo_demo_tensor
+from range_image_compression.models import demo_demo_tensor
 
 # physical_devices = tf.config.list_physical_devices('GPU')
 # if len(physical_devices) > 0:
