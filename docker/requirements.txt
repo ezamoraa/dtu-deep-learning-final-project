@@ -1,3 +1,4 @@
-tensorflow==2.9.0
-easydict
-tensorflow-compression==2.9.0
+torch
+torchvision
+torchaudio
+typing-extensions==4.3.0

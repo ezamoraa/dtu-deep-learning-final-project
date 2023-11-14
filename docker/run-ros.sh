@@ -210,7 +210,8 @@ else
   echo "  Image: ${IMAGE}"
   echo ""
   if [[ ${HAS_COMMAND} = "0" ]]; then
-    docker run ${DOCKER_RUN_ARGS[@]} ${IMAGE}
+    echo "run ${DOCKER_RUN_ARGS[@]} ${IMAGE}"
+    docker run ${DOCKER_RUN_ARGS[@]} -it ${IMAGE}
     if [[ ${ATTACH} = "1" ]]; then
       echo
       docker exec ${DOCKER_EXEC_ARGS[@]} ${CONTAINER_NAME} bash -i
