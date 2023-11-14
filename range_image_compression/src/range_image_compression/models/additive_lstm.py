@@ -205,22 +205,6 @@ class DecoderRNN(nn.Module):
         decoded = self.Out(x)  # Output adjustment
         return decoded, hidden2, hidden3, hidden4, hidden5
 
-def initial_hidden(batch_size, out_channels, hidden_size):
-    """
-    Initialize hidden and cell states, all zeros
-    """
-    shape = (batch_size, out_channels, hidden_size[0], hidden_size[1])
-    hidden = torch.zeros(shape, device=torch.device('cuda'))    # Make sure device is correct
-    cell = torch.zeros(shape, device=torch.device('cuda'))      # Make sure device is correct
-    return hidden, cell
-
-def compute_loss(self, res):
-    """
-    Mean Absolute Error Loss function
-    """
-    loss = torch.mean(torch.abs(res))
-    return loss
-
 class LidarCompressionNetwork(nn.Module):
     """
     The model to compress range image projected from point clouds
@@ -240,30 +224,43 @@ class LidarCompressionNetwork(nn.Module):
         self.encoder = EncoderRNN(self.bottleneck)
         self.decoder = DecoderRNN()
 
-        # TODO: Add normalization (batch-norm?)
-        # OLD: self.normalize = Lambda(lambda x: tf.multiply(tf.subtract(x, 0.1), 2.5), name="normalization")
-
-        # TODO: What is this?
-        # OLD: self.inputs = tf.keras.layers.Input(shape=(self.input_size, self.input_size, 1))
+        # TODO: Figure out what the normalization values 0.1 and 2.5 means and where they come from.
+        self.normalize = lambda x: (x-0.1)*2.5
 
         # TODO: Not really sure how this works - before this was input to the initial_hidden... should it still be?
         self.DIM1 = self.input_size // 2
         self.DIM2 = self.DIM1 // 2
         self.DIM3 = self.DIM2 // 2
         self.DIM4 = self.DIM3 // 2
+    
+    def compute_loss(self, res):
+        """
+        Mean Absolute Error Loss function
+        """
+        loss = torch.mean(torch.abs(res))
+        return loss
+    
+    def initial_hidden(self, batch_size, out_channels, hidden_size):
+        """
+        Initialize hidden and cell states, all zeros
+        """
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+        shape = (batch_size, out_channels, hidden_size[0], hidden_size[1])
+        hidden = torch.zeros(shape, device = device)    # Make sure device is correct
+        cell = torch.zeros(shape, device = device)      # Make sure device is correct
+        return hidden, cell
 
     def forward(self, inputs, training=False):
-        training = self.training
-
         # Initialize the hidden states when a new batch comes in
         batch_size = inputs.shape[0]
-        hidden_e2 = initial_hidden(batch_size, 256, [8,8])
-        hidden_e3 = initial_hidden(batch_size, 512, [4,4])
-        hidden_e4 = initial_hidden(batch_size, 512, [2,2])
-        hidden_d2 = initial_hidden(batch_size, 512, [2,2])
-        hidden_d3 = initial_hidden(batch_size, 512, [4,4])
-        hidden_d4 = initial_hidden(batch_size, 256, [8,8])
-        hidden_d5 = initial_hidden(batch_size, 128, [16,16])
+        hidden_e2 = self.initial_hidden(batch_size, 256, [8, self.DIM2])
+        hidden_e3 = self.initial_hidden(batch_size, 512, [4, self.DIM3])
+        hidden_e4 = self.initial_hidden(batch_size, 512, [2, self.DIM4])
+        hidden_d2 = self.initial_hidden(batch_size, 512, [2, self.DIM4])
+        hidden_d3 = self.initial_hidden(batch_size, 512, [4, self.DIM3])
+        hidden_d4 = self.initial_hidden(batch_size, 256, [8, self.DIM2])
+        hidden_d5 = self.initial_hidden(batch_size, 128, [16,self.DIM1])
         outputs = torch.zeros_like(inputs)
 
         inputs = self.normalize(inputs)
@@ -283,7 +280,7 @@ class LidarCompressionNetwork(nn.Module):
             res = outputs - inputs  # Make sure we can just subtract like this
             # OLD: res = self.subtract([outputs, inputs])...
 
-            losses.append(compute_loss(res))
+            losses.append(self.compute_loss(res))
 
         loss = torch.sum(losses)*self.beta
 
