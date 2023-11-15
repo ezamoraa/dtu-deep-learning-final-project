@@ -34,7 +34,7 @@ NC='\033[0m' # No Color
 
 export GPG_TTY=$(tty) # set tty for login at docker container registry using credentials helper 'pass'
 
-IMAGE_NAME="ros_pytorch" \
+IMAGE_NAME="rolandoesq/ros-noetic-pytorch" \
 IMAGE_TAG="latest" \
 MOUNT_DIR="$DIR/../" \
 DOCKER_MOUNT_DIR="/ws" \
@@ -42,24 +42,5 @@ CONTAINER_NAME="ros_compress" \
 DOCKER_RUN_ARGS="--workdir /ws/catkin_ws" \
 \
 $DIR/run-ros.sh $@
-
-
-# IMAGE_NAME="ros_pytorch" \
-# IMAGE_TAG="latest" \
-# MOUNT_DIR="$DIR/../catkin_ws" \
-# DOCKER_MOUNT_DIR="/catkin_ws" \
-# CONTAINER_NAME="ros_compress" \
-# DOCKER_RUN_ARGS="--workdir /catkin_ws" \
-# \
-# $DIR/run-ros.sh $@
-
-# 1  rosdep update
-# 2  rosdep install --from-paths ./src --ignore-packages-from-source
-# 3  source devel/setup.bash
-# 4  cd ..
-# 5  cd range_image_compression/
-# 6  pip3 install -e .
-# 7  cd ../catkin_ws/
-# 8  roslaunch pointcloud_to_rangeimage compression.launch
 
 

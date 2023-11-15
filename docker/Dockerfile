@@ -26,7 +26,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     vim 
 
-#RUN python3 -m pip install torch torchvision torchaudio pyyaml numpy 
+RUN python3 -m pip install torch torchvision torchaudio pyyaml numpy 
 
 # Source ROS setup.bash
 RUN echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc

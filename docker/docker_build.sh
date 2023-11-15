@@ -26,4 +26,4 @@
 #  ==============================================================================
 #
 
-docker build --tag ros_pytorch .
+docker build --tag rolandoesq/ros-noetic-pytorch .
