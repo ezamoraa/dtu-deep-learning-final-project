@@ -51,6 +51,7 @@ class AdditiveLSTMConfig():
         self.bottleneck = 32
         self.num_iters = 32
         self.crop_size = 32
+        self.demo = False
 
         # Give path for checkpoint or set to False otherwise
-        self.checkpoint = False
+        self.checkpoint = ""
