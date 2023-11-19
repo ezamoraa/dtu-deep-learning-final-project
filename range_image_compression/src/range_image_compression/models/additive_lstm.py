@@ -103,7 +103,7 @@ class EncoderRNN(nn.Module):
         super(EncoderRNN, self).__init__()
         self.bottleneck = bottleneck
         # Define the convolutional layers
-        self.Conv_e1 = nn.Conv2d(in_channels=3, out_channels=64, kernel_size=(3, 3), stride=(2,2), padding=custom_padding((3,3)), bias=False)    # TODO: stride=(2,2) is not supported in PyTorch when using padding='same'. Can we make a custom padding function?
+        self.Conv_e1 = nn.Conv2d(in_channels=1, out_channels=64, kernel_size=(3, 3), stride=(2,2), padding=custom_padding((3,3)), bias=False)    # TODO: stride=(2,2) is not supported in PyTorch when using padding='same'. Can we make a custom padding function?
         self.RnnConv_e1 = RnnConv(in_channels=64, out_channels=256, strides=(2, 2), kernel_size=(3, 3), hidden_kernel_size=(3, 3))
         self.RnnConv_e2 = RnnConv(256, 512, (2, 2), (3, 3), (3, 3))
         self.RnnConv_e3 = RnnConv(512, 512, (2, 2), (3, 3), (3, 3))
@@ -112,6 +112,7 @@ class EncoderRNN(nn.Module):
         self.Sign = lambda x: torch.sign(x)
 
     def forward(self, input, hidden2, hidden3, hidden4, training=False):
+        print("EncoderRNN - forward")
         # hidden2, hidden3, and hidden4 are the output of the previous encoder interation. There are 3, because we have 3 layers with one LSTM cell each.
         # Process through the layers sequentially
         # input size (32,32,3)
@@ -175,6 +176,7 @@ class DecoderRNN(nn.Module):
         self.Out = lambda x: x * 0.5
 
     def forward(self, input, hidden2, hidden3, hidden4, hidden5, training=False):
+        print("DecoderRNN - forward")
         # (2,2,bottleneck)
         x_conv = self.Conv_d1(input)  # First convolutional layer
         # (2,2,512)
@@ -266,8 +268,10 @@ class LidarCompressionNetwork(nn.Module):
         inputs = self.normalize(inputs)
         res = inputs
 
-        losses = []
+        #losses = []
+        loss = torch.zeros(1)
         for i in range(self.num_iters):
+            print(f"Iteration, LidarCompressionNetwork: {i}")
             code, hidden_e2, hidden_e3, hidden_e4 = self.encoder(res, hidden_e2, hidden_e3, hidden_e4, training=training)
 
             decoded, hidden_d2, hidden_d3, hidden_d4, hidden_d5 = self.decoder(code, hidden_d2, hidden_d3, hidden_d4, hidden_d5, training=training)
@@ -280,12 +284,15 @@ class LidarCompressionNetwork(nn.Module):
             res = outputs - inputs  # Make sure we can just subtract like this
             # OLD: res = self.subtract([outputs, inputs])...
 
-            losses.append(self.compute_loss(res))
+            #losses.append(self.compute_loss(res))
+            loss += self.compute_loss(res)
 
-        loss = torch.sum(losses)*self.beta
+        loss = loss * self.beta
+        #losses = torch.FloatTensor(losses)  # TODO: make this a tensor from the beginning?
+        #loss = torch.sum(losses)*self.beta
 
         # Denormalize the tensors and convert to float32
-        outputs = nn.clamp(((outputs * 0.4) + 0.1), min=0, max=1)
+        outputs = torch.clamp(((outputs * 0.4) + 0.1), min=0, max=1)
         # OLD: outputs = tf.clip_by_value(tf.add(tf.multiply(outputs, 0.4), 0.1), 0, 1)
 
         outputs = outputs.type(torch.FloatTensor)

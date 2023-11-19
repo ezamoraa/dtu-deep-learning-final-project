@@ -110,7 +110,7 @@ def train(args):
             scheduler.step(epoch + i / iters)
             step += 1
 
-            print(f"Epoch: {epoch}, Step: {step}, Loss: {loss:.4f}, LR: {scheduler.get_last_lr()[0]:.6f}")
+            print(f"Epoch: {epoch}, Step: {step}, Loss: {loss}, LR: {scheduler.get_last_lr()[0]:.6f}")
 
             # Metrics update on each training batch
             writer.add_scalar('Loss/train', loss, step)
