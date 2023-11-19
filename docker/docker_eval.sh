@@ -24,7 +24,7 @@
 #  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #  SOFTWARE.
 #  ==============================================================================
-#
+# rosdep install --from-paths ./src --ignore-packages-from-source
 
 # get directory of this script
 DIR="$(cd -P "$(dirname "$0")" && pwd)"
@@ -34,11 +34,13 @@ NC='\033[0m' # No Color
 
 export GPG_TTY=$(tty) # set tty for login at docker container registry using credentials helper 'pass'
 
-IMAGE_NAME="tillbeemelmanns/pointcloud_compression" \
-IMAGE_TAG="noetic" \
-MOUNT_DIR="$DIR/../catkin_ws" \
-DOCKER_MOUNT_DIR="/catkin_ws" \
-CONTAINER_NAME="ros_compression_container" \
-DOCKER_RUN_ARGS="--workdir /catkin_ws" \
+IMAGE_NAME="rolandoesq/ros-noetic-pytorch" \
+IMAGE_TAG="latest" \
+MOUNT_DIR="$DIR/../" \
+DOCKER_MOUNT_DIR="/ws" \
+CONTAINER_NAME="ros_compress" \
+DOCKER_RUN_ARGS="--workdir /ws/catkin_ws" \
 \
 $DIR/run-ros.sh $@
+
+

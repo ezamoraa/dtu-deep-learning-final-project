@@ -25,7 +25,7 @@ point_cloud_to_rangeimage:
 # additive_lstm
 # oneshot_lstm with one-shot reconstruction
 # additive_gru for GRU with additive reconstruction
-compression_method: additive_lstm
+compression_method: demo
 
 
 rnn_compression:
