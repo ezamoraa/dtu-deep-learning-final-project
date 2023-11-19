@@ -46,7 +46,7 @@ class RnnConv(nn.Module):
                                 padding=custom_padding(kernel_size),
                                 bias=False)
 
-        self.conv_h = nn.Conv2d(in_channels=out_channels,   # TODO: Verify that this is correct.
+        self.conv_h = nn.Conv2d(in_channels=out_channels,
                                 out_channels=self.out_channels * 4,  # times four (4) as we have four (4) gates
                                 kernel_size=hidden_kernel_size,
                                 stride=(1, 1),
@@ -106,7 +106,6 @@ class EncoderRNN(nn.Module):
             self.C = [(1,64), (64,256), (256,512), (512,512), (512,bottleneck)]
 
         # Define the convolutional layers
-        # TODO: stride=(2,2) is not supported in PyTorch when using padding='same'. Can we make a custom padding function?
         self.Conv_e1  = nn.Conv2d(in_channels=self.C[0][0], out_channels=self.C[0][1], stride=(2,2), kernel_size=(3,3), padding=custom_padding((3,3)), bias=False)
         self.RnnConv_e1 = RnnConv(in_channels=self.C[1][0], out_channels=self.C[1][1], stride=(2,2), kernel_size=(3,3), hidden_kernel_size=(3,3))
         self.RnnConv_e2 = RnnConv(in_channels=self.C[2][0], out_channels=self.C[2][1], stride=(2,2), kernel_size=(3,3), hidden_kernel_size=(3,3))
@@ -131,7 +130,7 @@ class EncoderRNN(nn.Module):
         new_hidden4 = self.RnnConv_e3(x, hidden4)  # RnnConv 3
         x = new_hidden4[0]
         # (2,2,512)
-        # Binarizer:    # TODO: What is this / what does it do?
+        # Binarizer
         x = self.Conv_b(x)  # Final convolutional layer for bottleneck
         x = self.tanh_activation(x)  # tanh activation
         # (2,2,bottleneck)
@@ -253,7 +252,6 @@ class LidarCompressionNetwork(nn.Module):
         """
         Initialize hidden and cell states, all zeros
         """
-        # TODO: Why is the order different than in the tensorflow implementation?
         shape = (batch_size, out_channels, hidden_size[0], hidden_size[1])
         hidden = torch.zeros(shape, device=self.device)
         cell = torch.zeros(shape, device=self.device)
