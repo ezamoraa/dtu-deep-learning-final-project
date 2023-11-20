@@ -16,6 +16,13 @@ docker pull rolandoesq/ros-noetic-pytorch
 
 Before running the point cloud compression node, make sure to follow these setup instructions:
 
+0. First make sure that the git submodules are initialized for the project repo (needed for velodyne driver):
+
+    ```bash
+    git submodule init
+    git submodule update
+    ```
+
 1. Update ROS dependencies:
 
     ```bash
@@ -48,27 +55,15 @@ Before running the point cloud compression node, make sure to follow these setup
 
 ## Point Cloud Compression
 
-After setting up the workspace, follow these steps to run the point cloud compression:
+After setting up the workspace, follow these steps to run the point cloud compression from catkin_ws:
 
-1. Navigate to the range image compression package:
-
-    ```bash
-    cd ../range_image_compression/
-    ```
-
-2. Install the Python package using pip:
+1. Install the range_image_compression Python package using pip:
 
     ```bash
-    pip3 install -e .
+    pip3 install -e ../range_image_compression/
     ```
 
-3. Return to the Catkin workspace:
-
-    ```bash
-    cd ../catkin_ws/
-    ```
-
-4. Launch the point cloud compression node:
+2. Launch the point cloud compression node:
 
     ```bash
     roslaunch pointcloud_to_rangeimage compression.launch
