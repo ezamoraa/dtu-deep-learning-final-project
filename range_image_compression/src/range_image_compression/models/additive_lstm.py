@@ -66,7 +66,6 @@ class RnnConv(nn.Module):
         # Adding the input and hidden state (short term memory) to prepare for the gates:
         sum_conv = conv_inputs + conv_hidden
         # Splitting the sum_conv tensor into the 4 gates. Each gate get the same number of filters.
-        # TODO: Verify dimension used to perform chunking
         in_gate, forget_gate, out_gate, candidate_gate = torch.chunk(sum_conv, 4, dim=1)    # divides into four (4) chunks to split into the four gates.
 
         # Applying the activation functions
@@ -99,17 +98,18 @@ class EncoderRNN(nn.Module):
     def __init__(self, bottleneck, demo=False):
         super(EncoderRNN, self).__init__()
         self.bottleneck = bottleneck
-        # (in,out): Conv_e1->RnnConv_e1->RnnConv_e2->RnnConv_e3->Conv_b
+        # (in,out): Conv_e1->RnnConv_e2->RnnConv_e3->RnnConv_e4->Conv_b
         if demo:
             self.C = [(1,32), (32,64), (64,64), (64,128), (128,bottleneck)]
         else:
             self.C = [(1,64), (64,256), (256,512), (512,512), (512,bottleneck)]
 
         # Define the convolutional layers
+        # NOTE: The stride divides the input by 2 on each conv layer (matching DIM1-4). This is restored with the DTS layers
         self.Conv_e1  = nn.Conv2d(in_channels=self.C[0][0], out_channels=self.C[0][1], stride=(2,2), kernel_size=(3,3), padding=custom_padding((3,3)), bias=False)
-        self.RnnConv_e1 = RnnConv(in_channels=self.C[1][0], out_channels=self.C[1][1], stride=(2,2), kernel_size=(3,3), hidden_kernel_size=(3,3))
-        self.RnnConv_e2 = RnnConv(in_channels=self.C[2][0], out_channels=self.C[2][1], stride=(2,2), kernel_size=(3,3), hidden_kernel_size=(3,3))
-        self.RnnConv_e3 = RnnConv(in_channels=self.C[3][0], out_channels=self.C[3][1], stride=(2,2), kernel_size=(3,3), hidden_kernel_size=(3,3))
+        self.RnnConv_e2 = RnnConv(in_channels=self.C[1][0], out_channels=self.C[1][1], stride=(2,2), kernel_size=(3,3), hidden_kernel_size=(3,3))
+        self.RnnConv_e3 = RnnConv(in_channels=self.C[2][0], out_channels=self.C[2][1], stride=(2,2), kernel_size=(3,3), hidden_kernel_size=(3,3))
+        self.RnnConv_e4 = RnnConv(in_channels=self.C[3][0], out_channels=self.C[3][1], stride=(2,2), kernel_size=(3,3), hidden_kernel_size=(3,3))
         self.Conv_b   = nn.Conv2d(in_channels=self.C[4][0], out_channels=self.C[4][1], kernel_size=(1,1), bias=False)
         self.tanh_activation = nn.Tanh()
         self.Sign = lambda x: torch.sign(x)
@@ -118,16 +118,16 @@ class EncoderRNN(nn.Module):
         # print("EncoderRNN - forward")
         # hidden2, hidden3, and hidden4 are the output of the previous encoder interation. There are 3, because we have 3 layers with one LSTM cell each.
         # Process through the layers sequentially
-        # input size (32,32,3)
+        # input size (32,32,1)
         x = self.Conv_e1(input)  # First convolutional layer
         # (16,16,64)
-        new_hidden2 = self.RnnConv_e1(x, hidden2)   # RnnConv 1
+        new_hidden2 = self.RnnConv_e2(x, hidden2)   # RnnConv 1
         x = new_hidden2[0]                          # Takes the hidden state (STM) from the RnnConv layer to pass into the next layer
         # (8,8,256)
-        new_hidden3 = self.RnnConv_e2(x, hidden3)  # RnnConv 2
+        new_hidden3 = self.RnnConv_e3(x, hidden3)  # RnnConv 2
         x = new_hidden3[0]
         # (4,4,512)
-        new_hidden4 = self.RnnConv_e3(x, hidden4)  # RnnConv 3
+        new_hidden4 = self.RnnConv_e4(x, hidden4)  # RnnConv 3
         x = new_hidden4[0]
         # (2,2,512)
         # Binarizer
@@ -158,14 +158,14 @@ class DecoderRNN(nn.Module):
         decoded: decoded array in each iteration
         hidden2, hidden3, hidden4, hidden5: hidden states and cell states of corresponding ConvLSTM layers
     """
-    def __init__(self, demo=False):
+    def __init__(self, bottleneck, demo=False):
         super(DecoderRNN, self).__init__()
 
         # (in,out): Conv_d1->RnnConv_d2+DTS1->RnnConv_d3+DTS2->RnnConv_d4+DTS3->RnnConv_d5+DTS4->Conv_d6
         if demo:
-            self.C = [(32,128), (128,128), (32,128), (32,64), (16,64), (16,1)]
+            self.C = [(bottleneck,128), (128,128), (32,128), (32,64), (16,64), (16,1)]
         else:
-            self.C = [(32,512), (512,512), (128,512), (128,256), (64,128), (32,1)]
+            self.C = [(bottleneck,512), (512,512), (128,512), (128,256), (64,128), (32,1)]
 
         # Define the layers
         self.Conv_d1  = nn.Conv2d(in_channels=self.C[0][0], out_channels=self.C[0][1], kernel_size=(1,1), stride=1, padding=0, bias=False)
@@ -177,6 +177,8 @@ class DecoderRNN(nn.Module):
         self.tanh_activation = nn.Tanh()
         # Define the depth-to-space (DTS) layers:
         # Rearranges elements in a tensor of shape (C, H, W) to a tensor of shape (C/r², rH, rW), where r is a given upscale factor.
+        # NOTE: The DTS layers recover the spatial resolution of the image (encoded_size=img_size/16, 4 DTS layers -> code_size*2^4 = img_size).
+        # The conv layers do not change the size of the tensor (stride=1)
         self.DTS1 = nn.PixelShuffle(2)
         self.DTS2 = nn.PixelShuffle(2)
         self.DTS3 = nn.PixelShuffle(2)
@@ -221,25 +223,45 @@ class LidarCompressionNetwork(nn.Module):
     The encoder and decoder layers are iteratively called for num_iters iterations.
     This architecture uses additive reconstruction framework and ConvLSTM layers.
     """
-    def __init__(self, bottleneck, num_iters, batch_size, input_size, device, demo=False):
+    # Network modes
+    MODE_TRAINING = 1
+    MODE_INFERENCE_ENCODE = 2
+    MODE_INFERENCE_DECODE = 3
+    # Ratio between the image dimensions and the code dimensions
+    # This is determined by the architecture of the encoder and decoder (conv layers and DTS layers)
+    CODE_IMG_DIM_RATIO = 16
+
+    @classmethod
+    def mode_needs_encoder(cls, mode):
+        return mode in [
+            LidarCompressionNetwork.MODE_TRAINING,
+            LidarCompressionNetwork.MODE_INFERENCE_ENCODE
+        ]
+
+    def __init__(self, bottleneck, num_iters, image_size, device, mode=MODE_TRAINING, demo=False):
         super().__init__()
         self.bottleneck = bottleneck
         self.num_iters = num_iters
-        self.batch_size = batch_size
-        self.input_size = input_size
+        # image_size = (height, width)
+        self.image_size = image_size
         self.beta = 1.0 / self.num_iters
         self.device = device
-
+        self.mode = mode
+        self.decoder = DecoderRNN(self.bottleneck, demo=demo)
         self.encoder = EncoderRNN(self.bottleneck, demo=demo)
-        self.decoder = DecoderRNN(demo=demo)
+
+        if LidarCompressionNetwork.mode_needs_encoder(mode):
+            self.forward = self.forward_encode_decode
+        else:
+            self.forward = self.forward_decode
 
         # TODO: Figure out what the normalization values 0.1 and 2.5 means and where they come from.
         self.normalize = lambda x: (x-0.1)*2.5
 
-        self.DIM1 = self.input_size // 2
-        self.DIM2 = self.DIM1 // 2
-        self.DIM3 = self.DIM2 // 2
-        self.DIM4 = self.DIM3 // 2
+        self.DIM1 = (self.image_size[0] // 2, self.image_size[1] // 2)
+        self.DIM2 = (self.DIM1[0] // 2, self.DIM1[1] // 2)
+        self.DIM3 = (self.DIM2[0] // 2, self.DIM2[1] // 2)
+        self.DIM4 = (self.DIM3[0] // 2, self.DIM3[1] // 2)
 
     def compute_loss(self, res):
         """
@@ -257,41 +279,85 @@ class LidarCompressionNetwork(nn.Module):
         cell = torch.zeros(shape, device=self.device)
         return hidden, cell
 
-    def forward(self, inputs, training=False):
-        # Initialize the hidden states when a new batch comes in
+    def forward_encode_decode(self, inputs, training=False):
+        if self.mode == LidarCompressionNetwork.MODE_INFERENCE_ENCODE:
+            # Force training to False when in inference mode
+            training = False
+
         batch_size = inputs.shape[0]
-        hidden_e2 = self.initial_hidden(batch_size, self.encoder.C[1][1], [8, self.DIM2])
-        hidden_e3 = self.initial_hidden(batch_size, self.encoder.C[2][1], [4, self.DIM3])
-        hidden_e4 = self.initial_hidden(batch_size, self.encoder.C[3][1], [2, self.DIM4])
-        hidden_d2 = self.initial_hidden(batch_size, self.decoder.C[1][1], [2, self.DIM4])
-        hidden_d3 = self.initial_hidden(batch_size, self.decoder.C[2][1], [4, self.DIM3])
-        hidden_d4 = self.initial_hidden(batch_size, self.decoder.C[3][1], [8, self.DIM2])
-        hidden_d5 = self.initial_hidden(batch_size, self.decoder.C[4][1], [16,self.DIM1])
+
+        # Initialize the hidden states when a new batch comes in
+        hidden_e2 = self.initial_hidden(batch_size, self.encoder.C[1][1], self.DIM2)
+        hidden_e3 = self.initial_hidden(batch_size, self.encoder.C[2][1], self.DIM3)
+        hidden_e4 = self.initial_hidden(batch_size, self.encoder.C[3][1], self.DIM4)
+
+        hidden_d2 = self.initial_hidden(batch_size, self.decoder.C[1][1], self.DIM4)
+        hidden_d3 = self.initial_hidden(batch_size, self.decoder.C[2][1], self.DIM3)
+        hidden_d4 = self.initial_hidden(batch_size, self.decoder.C[3][1], self.DIM2)
+        hidden_d5 = self.initial_hidden(batch_size, self.decoder.C[4][1], self.DIM1)
         outputs = torch.zeros_like(inputs, device=self.device)
 
+        # Normalize the input such that it covers 96% depth and 97% intensity values
         inputs = self.normalize(inputs)
+        codes = []
         res = inputs
 
-        loss = torch.zeros(1,device=self.device)
+        loss = None
+        if self.mode == LidarCompressionNetwork.MODE_TRAINING:
+            loss = torch.zeros(1,device=self.device)
+
         for i in range(self.num_iters):
-            # print(f"Iteration, LidarCompressionNetwork: {i}")
+            # print(f"Iteration, forward_encode_decode: {i}")
             code, hidden_e2, hidden_e3, hidden_e4 = self.encoder(
                 res, hidden_e2, hidden_e3, hidden_e4, training=training)
+            codes.append(code)
 
             decoded, hidden_d2, hidden_d3, hidden_d4, hidden_d5 = self.decoder(
                 code, hidden_d2, hidden_d3, hidden_d4, hidden_d5, training=training)
-
             outputs = outputs + decoded
 
-            # Update res as predicted output in this iteration subtract the original input
             res = outputs - inputs
-            loss += self.compute_loss(res)
-
-        loss = loss * self.beta
+            if self.mode == LidarCompressionNetwork.MODE_TRAINING:
+                loss += self.compute_loss(res) * self.beta
 
         # Denormalize the tensors and convert to float32
         outputs = torch.clamp(((outputs * 0.4) + 0.1), min=0, max=1)
-        # OLD: outputs = tf.clip_by_value(tf.add(tf.multiply(outputs, 0.4), 0.1), 0, 1)
-
         outputs = outputs.to(dtype=torch.float32)
-        return outputs, loss
+
+        return {
+            "codes": codes,
+            "outputs": outputs,
+            "loss": loss,
+        }
+
+    def forward_decode(self, inputs):
+        codes = inputs
+
+        batch_size = codes[0].shape[0]
+
+        # Initialize the hidden states when a new batch comes in
+        hidden_d2 = self.initial_hidden(batch_size, self.decoder.C[1][1], self.DIM4)
+        hidden_d3 = self.initial_hidden(batch_size, self.decoder.C[2][1], self.DIM3)
+        hidden_d4 = self.initial_hidden(batch_size, self.decoder.C[3][1], self.DIM2)
+        hidden_d5 = self.initial_hidden(batch_size, self.decoder.C[4][1], self.DIM1)
+
+        outputs = torch.zeros((batch_size, 1, self.image_size[0], self.image_size[1]), device=self.device)
+        loss = None
+
+        for i in range(self.num_iters):
+            # print(f"Iteration, forward_decode: {i}")
+            code = codes[i]
+
+            decoded, hidden_d2, hidden_d3, hidden_d4, hidden_d5 = self.decoder(
+                code, hidden_d2, hidden_d3, hidden_d4, hidden_d5, training=False)
+            outputs = outputs + decoded
+
+        # Denormalize the tensors and convert to float32
+        outputs = torch.clamp(((outputs * 0.4) + 0.1), min=0, max=1)
+        outputs = outputs.to(dtype=torch.float32)
+
+        return {
+            "codes": codes,
+            "outputs": outputs,
+            "loss": loss,
+        }

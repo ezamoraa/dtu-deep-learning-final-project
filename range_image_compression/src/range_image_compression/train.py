@@ -33,8 +33,7 @@ def load_config_and_model(args, device):
     model = g_model_map[model_name](
         bottleneck=cfg.bottleneck,
         num_iters=cfg.num_iters,
-        batch_size=cfg.batch_size,
-        input_size=cfg.crop_size,
+        image_size=(cfg.crop_size,cfg.crop_size),
         device=device,
         demo=cfg.demo,
     )
@@ -107,7 +106,8 @@ def train(args):
         for i, input in enumerate(train_dataloader):
             input = input.to(device)
             optimizer.zero_grad()
-            output, loss = model(input, training=True)
+            out = model(input, training=True)
+            output, loss = out["outputs"], out["loss"]
             loss.backward()
             optimizer.step()
             scheduler.step(epoch + i / iters)
@@ -133,7 +133,8 @@ def train(args):
                     model.eval()
                     for input in val_dataloader:
                         input = input.to(device)
-                        output, loss = model(input)
+                        out = model(input)
+                        output, loss = out["outputs"], out["loss"]
 
                         # Detach tensors from GPU
                         input = input.cpu().detach()
@@ -141,8 +142,8 @@ def train(args):
                         loss = loss.cpu().detach()
 
                         # multiply by batch size to account for different batch sizes
-                        val_losses.append(loss * input.shape[0])
-                        val_maes.append(mae(input, output) * input.shape[0])
+                        val_losses.append(float(loss * input.shape[0]))
+                        val_maes.append(float(mae(input, output) * input.shape[0]))
                     model.train()
                 # Metrics update on each validation cycle
                 writer.add_scalar('Loss/val', np.sum(val_losses) / len(val_dataset), step)
@@ -166,7 +167,8 @@ def train(args):
         print("End of epoch: {}".format(epoch))
         input = next(iter(val_dataloader))
         input = input.to(device)
-        output, loss = model(input)
+        out = model(input)
+        output, loss = out["outputs"], out["loss"]
 
         # Detach tensors from GPU
         input = input.cpu().detach()
@@ -199,6 +201,8 @@ def parse_args():
                         help="Number of iterations in the forward pass of the model")
     parser.add_argument('-c', '--checkpoint', type=str,
                         help="Path to checkpoint .tar file to load model from")
+    parser.add_argument('-b', '--bottleneck', type=int,
+                        help="Size of the bottleneck layer")
     args = parser.parse_args()
     return args
 
