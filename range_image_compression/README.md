@@ -25,7 +25,13 @@ To install the Python package and its dependencies (the venv should be active):
 To run the training script (run with --help for more details on the arguments):
 
 ```console
-(.venv) $ range_image_compression_train [--arg val ...]
+(.venv) $ range_image_compression_train --train_data_dir ../dataset/pointcloud_compression/train/ --val_data_dir ../dataset/pointcloud_compression/val/ --demo --num_iters 4
+```
+
+To start the training script loading a checkpoint file:
+
+```console
+(.venv) $ range_image_compression_train --train_data_dir ../dataset/pointcloud_compression/train/ --val_data_dir ../dataset/pointcloud_compression/val/ --demo --num_iters 4 --checkpoint output/weights_step\=20000.tar
 ```
 
 To run the Tensorboard web server to monitor the training (from same folder where the training script was run):

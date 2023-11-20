@@ -1,5 +1,6 @@
 numpy==1.24.4
 tensorboard
 scikit-learn
+packaging
 # tensorflow==2.14.0
 # tensorflow-compression==2.14.0

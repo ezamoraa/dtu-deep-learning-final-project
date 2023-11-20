@@ -24,7 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     vim
 
 RUN pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
-RUN pip3 install pyyaml numpy
+RUN pip3 install pyyaml numpy opencv-contrib-python
 
 # Source ROS setup.bash
 RUN echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc
