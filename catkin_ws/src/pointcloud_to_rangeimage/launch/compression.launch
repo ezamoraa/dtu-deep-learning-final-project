@@ -35,6 +35,7 @@
     output="screen"		>
   </node>
 
+  <arg name="ouput_path" default="/catkin_ws/snnrmse_metrics.txt">
   <node
     name="snnrmse"
     pkg="snnrmse"
@@ -42,6 +43,7 @@
     output="screen"		>
     <remap to="/velodyne_points" from="/points2"/> 
     <remap to="/rangeimage_to_pointcloud_node/pointcloud_out" from="/decompressed"/>
+    <param name="output_path" value="$(arg ouput_path)"/>
   </node>
 
   <node

@@ -43,23 +43,45 @@ class SNNRMSE:
         self.sum_pointlost = self.sum_pointlost + pointlost
         self.sum_points = self.sum_points + pc1_xyzi.shape[0]
 
-        print("==============EVALUATION==============")
-        print("Frame:", pc1.header.seq + 1)
-        print("Number of points in original cloud:", pc1_xyzi.shape[0])
-        print("Shape:", pc1.width, pc1.height)
-        print("Current Point Lost:", pointlost)
-        print("Current Geometry SNNRMSE:", snnrmse)
-        print("Current Intensity SNNRMSE:", snnrmsei)
-        print("Average Geometry SNNRMSE:", self.sum_snnrmse / (pc1.header.seq+1))
-        print("Average Intensity SNNRMSE:", self.sum_snnrmsei / (pc1.header.seq+1))
-        print("Average Point Lost:", self.sum_pointlost / (pc1.header.seq+1))
-        print("Average Point Number:", self.sum_points / (pc1.header.seq+1))
-        print("======================================")
+        metrics = {
+            "frame": pc1.header.seq+1,
+            "n_points_original": pc1_xyzi.shape[0],
+            "width": pc1.width,
+            "height": pc2.height,
+            "current_point_lost": pointlost,
+            "current_geometry_snnrmse": snnrmse,
+            "current_intensity_snnrmse": snnrmsei,
+            "avg_geometry_snnrmse": self.sum_snnrmse / (pc1.header.seq+1),
+            "avg_intensity_snnrmse": self.sum_snnrmsei/ (pc1.header.seq+1),
+            "avg_point_lost": self.sum_pointlost / (pc1.header.seq+1),
+            "average_point_number": self.sum_points / (pc1.header.seq+1)
+        } 
 
+        print("==============EVALUATION==============")
+        print("Frame:", metrics["frame"])
+        print("Number of points in original cloud:", metrics["n_points_original"])
+        print("Shape:", metrics["width"], metrics["height"])
+        print("Current Point Lost:", metrics["current_point_lost"])
+        print("Current Geometry SNNRMSE:", metrics["current_geometry_snnrmse"])
+        print("Current Intensity SNNRMSE:", metrics["current_intensity_snnrmse"])
+        print("Average Geometry SNNRMSE:", metrics["avg_geometry_snnrmse"])
+        print("Average Intensity SNNRMSE:", metrics["avg_intensity_snnrmse"])
+        print("Average Point Lost:", metrics["avg_point_lost"])
+        print("Average Point Number:", metrics["average_point_number"])
+        print("======================================")
+        
+        with open(self.output_path, 'a') as file:
+            if metrics["frame"] == 1:
+                file.write(",".join(metrics.keys()))
+            file.write("\n")
+            file.write(",".join([str(metric) for metric in metrics.values()]))
+            
+            
     def __init__(self):
         # initialize ROS node
         rospy.init_node('snnrmse_node', anonymous=False)
-
+        
+        self.output_path = rospy.get_param('~output_path') 
         original_cloud = message_filters.Subscriber('/points2', PointCloud2)
         decompressed_cloud = message_filters.Subscriber('/decompressed', PointCloud2)
 
