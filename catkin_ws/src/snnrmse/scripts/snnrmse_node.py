@@ -70,8 +70,7 @@ class SNNRMSE:
         print("Average Point Number:", metrics["average_point_number"])
         print("======================================")
         
-        save_path = '/catkin_ws/snnrmse_metrics.txt' 
-        with open(save_path, 'a') as file:
+        with open(self.output_path, 'a') as file:
             if metrics["frame"] == 1:
                 file.write(",".join(metrics.keys()))
             file.write("\n")
@@ -81,7 +80,8 @@ class SNNRMSE:
     def __init__(self):
         # initialize ROS node
         rospy.init_node('snnrmse_node', anonymous=False)
-
+        
+        self.output_path = rospy.get_param('~output_path') 
         original_cloud = message_filters.Subscriber('/points2', PointCloud2)
         decompressed_cloud = message_filters.Subscriber('/decompressed', PointCloud2)
 
