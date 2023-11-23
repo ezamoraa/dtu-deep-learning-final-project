@@ -26,7 +26,7 @@
 #include "pointcloud_to_rangeimage/utils.h"
 #include "pointcloud_to_rangeimage/RangeImage.h"
 #include "pointcloud_to_rangeimage/range_image_expand.h"
-
+#include "pointcloud_to_rangeimage/timing_utils.h"
 
 namespace
 {
@@ -93,6 +93,8 @@ private:
   boost::shared_ptr<RangeImageReconfServer> drsv_;
   pointcloud_to_rangeimage::RangeImage riwi_msg;
 
+  TimingUtils timing_utils_;
+  
 public:
   RangeImageConverter() : _newmsg(false),
                           _laser_frame(true),
@@ -101,7 +103,8 @@ public:
                           _max_range(200),
                           it_r_(nh_),
                           it_i_(nh_),
-                          nh_("~")
+                          nh_("~"),
+                          timing_utils_("/catkin_ws/pcl_to_range_image.csv")
   {
     // Get parameters from configuration file.
     while (!nh_.getParam("/point_cloud_to_rangeimage/vlp_rpm", _vlp_rpm))
@@ -189,6 +192,7 @@ public:
   {
     if (msg == NULL)
       return;
+    timing_utils_.startTimer();
     boost::mutex::scoped_lock(_mut);
 
     // Set header for the RangeImage message.
@@ -308,6 +312,7 @@ public:
     pub_.publish(riwi_msg);
 
     _newmsg = false;
+    timing_utils_.stopTimerAndWrite();
   }
 
 private:
