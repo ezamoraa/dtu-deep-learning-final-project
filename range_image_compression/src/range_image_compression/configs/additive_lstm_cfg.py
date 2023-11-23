@@ -35,7 +35,7 @@ class AdditiveLSTMConfig():
         self.batch_size = 128
         self.val_batch_size = 128
         self.val_freq = 1000
-        self.save_freq = 10000
+        self.save_freq = 25000
         self.train_output_dir = "output"
         self.xla = True
         self.mixed_precision = False

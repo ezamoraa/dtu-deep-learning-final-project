@@ -22,3 +22,5 @@ catkin_ws/.catkin_tools/
 
 runs/
 demo_samples/
+data/
+

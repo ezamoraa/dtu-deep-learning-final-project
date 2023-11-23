@@ -83,7 +83,8 @@ def train(args):
                                             T_0=cfg.min_learning_rate_epoch,
                                             eta_min=cfg.min_learning_rate)
     print("Learning rate initialized to {}".format(cfg.lr_init))
-    writer = SummaryWriter()
+    print("Torch log will be save in {}".format(os.path.join(cfg.train_output_dir,"")))
+    writer = SummaryWriter(log_dir=os.path.join(cfg.train_output_dir,""))
 
     step = 0
     start_epoch = 0
