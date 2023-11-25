@@ -65,7 +65,7 @@ class MsgDecoder:
         for i in range(num_iters):
             zero_codes.append(torch.zeros((1, bottleneck, CODE_SIZE[0], CODE_SIZE[1]), device=self.device))
         self.decoder(zero_codes)
-    @log_execution_time(out_path="/catkin_ws/decode_time.csv")
+    @log_execution_time(out_path="/ws/catkin_ws/decode_time.csv")
     def callback(self, msg):
         rospy.loginfo(rospy.get_caller_id() + "I heard %s", msg.send_time)
 

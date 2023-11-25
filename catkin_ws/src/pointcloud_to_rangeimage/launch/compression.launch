@@ -35,7 +35,7 @@
     output="screen"		>
   </node>
 
-  <arg name="ouput_path" default="/catkin_ws/snnrmse_metrics.txt">
+  <arg name="ouput_path" default="/ws/catkin_ws/snnrmse_metrics.txt"/>
   <node
     name="snnrmse"
     pkg="snnrmse"
