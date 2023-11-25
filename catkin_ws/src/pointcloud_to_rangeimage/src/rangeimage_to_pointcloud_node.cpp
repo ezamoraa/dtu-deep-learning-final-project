@@ -19,6 +19,7 @@
 #include "pointcloud_to_rangeimage/utils.h"
 #include <pointcloud_to_rangeimage/RangeImage.h>
 #include "pointcloud_to_rangeimage/range_image_expand.h"
+#include "pointcloud_to_rangeimage/timing_utils.h"
 
 namespace
 {
@@ -85,6 +86,8 @@ private:
   int frame_count_=0;
   boost::shared_ptr<RangeImageReconfServer> drsv_;
 
+  TimingUtils timing_utils_;
+
 public:
   PointCloudConverter() : _newmsg(false),
                           _laser_frame(true),
@@ -93,7 +96,8 @@ public:
                           _min_range(0.4),
                           _max_range(200),
                           it_(nh_),
-                          nh_("~")
+                          nh_("~"),
+                          timing_utils_("/catkin_ws/range_image_to_pcl.csv")
   {
     rangeImageSph_ = boost::shared_ptr<RIS>(new RIS);
     drsv_.reset(new RangeImageReconfServer(ros::NodeHandle("rangeimage_to_pointcloud_dynreconf")));
@@ -159,7 +163,7 @@ public:
   {
     if (msg == NULL)
       return;
-
+    timing_utils_.startTimer();
     boost::mutex::scoped_lock lock(_mut);
 
     // Copy images to OpenCV image pointer.
@@ -283,6 +287,7 @@ public:
     pub_.publish(ros_pc);
     _newmsg = false;
     _mut.unlock();
+    timing_utils_.stopTimerAndWrite();
   }
 
 private:

@@ -22,3 +22,8 @@ catkin_ws/.catkin_tools/
 
 runs/
 demo_samples/
+models/
+data/
+models.zip
+*_time.csv
+*_metrics.txt

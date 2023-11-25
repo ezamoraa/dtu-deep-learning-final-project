@@ -60,6 +60,7 @@ include_directories(
   ${Boost_INCLUDE_DIRS}
 )
 
+add_library(timing_utils src/timing_utils.cpp)
 
 ## Declare a cpp executable
 add_executable(pointcloud_to_rangeimage_node src/pointcloud_to_rangeimage_node.cpp)
@@ -69,6 +70,7 @@ target_link_libraries(pointcloud_to_rangeimage_node
    ${PCL_LIBRARIES}
    ${OpenCV_LIBRARIES}
    ${Boost_LIBRARIES}
+   timing_utils
 )
 
 ## Declare a cpp executable
@@ -79,4 +81,5 @@ target_link_libraries(rangeimage_to_pointcloud_node
    ${PCL_LIBRARIES}
    ${OpenCV_LIBRARIES}
    ${Boost_LIBRARIES}
+   timing_utils
 )
