@@ -24,3 +24,9 @@ runs/
 demo_samples/
 data/
 
+=======
+models/
+data/
+models.zip
+*_time.csv
+*_metrics.txt

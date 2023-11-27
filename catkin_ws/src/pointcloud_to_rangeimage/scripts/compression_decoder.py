@@ -9,6 +9,7 @@ from pointcloud_to_rangeimage.msg import RangeImage as RangeImage_msg
 from pointcloud_to_rangeimage.msg import RangeImageEncoded as RangeImageEncoded_msg
 
 from range_image_compression.models.additive_lstm import LidarCompressionNetwork
+from range_image_compression.utils import log_execution_time
 
 # NOTE: The size of the LIDAR range image is 32x1812 -> padded to 32x1824
 # (height, width)
@@ -64,7 +65,7 @@ class MsgDecoder:
         for i in range(num_iters):
             zero_codes.append(torch.zeros((1, bottleneck, CODE_SIZE[0], CODE_SIZE[1]), device=self.device))
         self.decoder(zero_codes)
-
+    @log_execution_time(out_path="/ws/catkin_ws/decode_time.csv")
     def callback(self, msg):
         rospy.loginfo(rospy.get_caller_id() + "I heard %s", msg.send_time)
 

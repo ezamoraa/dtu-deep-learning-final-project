@@ -15,7 +15,7 @@ point_cloud_to_rangeimage:
     # Set to true to record point cloud image dataset
     record_images: false
     # Path to store lidar compression dataset. The path should contain three sub-folders named azimuth, range and intensity.
-    record_path: /catkin_ws/images/
+    record_path: /ws/catkin_ws/images/
 
 
 ## Method image compression.
@@ -30,7 +30,7 @@ compression_method: additive_lstm_demo
 
 rnn_compression:
     # weights path of RNN image compression model
-    weights_path: /ws/catkin_ws/models/demo_model_checkpoint.tar
+    weights_path: /ws/catkin_ws/models/lstm_demo_i32_b32.tar
     # weights_path: /ws/catkin_ws/models/demo_model.pt
 
     # Bottleneck size of the model for RNN models
@@ -39,7 +39,7 @@ rnn_compression:
     # Number of iterations for compression of RNN models
     # Fewer number of iterations leads to smaller compressed data size and lower compression quality.
     # num_iters: 32
-    num_iters: 4
+    num_iters: 32
 
     xla: True
     mixed_precision: False
