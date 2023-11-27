@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader
 from torch.optim import Adam
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from torch.utils.tensorboard import SummaryWriter
+import torchvision.transforms as T
 
 from .data import LidarCompressionDataset
 from .configs import additive_lstm_cfg
@@ -52,6 +53,54 @@ def load_config_and_model(args, device):
 
     return cfg, model
 
+def create_code_img(codes, bottleneck):
+    # We unroll the code tensor dimensions into (bottleneck, H*W)
+    code2img = lambda code_tensor : torch.transpose(torch.reshape(code_tensor, (bottleneck,-1)), 0, 1)
+    code_iter_imgs = [code2img(c[0,:,:,:]) for c in codes]
+    # We concatenate the code images from each iteration into a single image
+    code_img = torch.cat(code_iter_imgs, dim=0)
+    h = code_iter_imgs[0].shape[0]
+    code_img_c = torch.zeros((1, code_img.shape[0], code_img.shape[1]))
+    # Use two intensities to represent the code and transition colors every h pixel rows
+    even_odd = 0
+    for i in range(len(code_iter_imgs)):
+        code_img_c[0, i*h:(i+1)*h,:] = \
+            torch.where(code_img[i*h:(i+1)*h,:] == -1, 0.3, 0.8) + (even_odd * 0.2)
+        even_odd = (even_odd + 1) % 2
+    return code_img_c
+
+def write_eval_epoch_metrics(device, cfg, model, writer, epoch, dataset, img_out_dir=None):
+    image = dataset._get_image(0)
+    image = torch.unsqueeze(T.ConvertImageDtype(torch.float32)(image), 0)
+    image = torch.unsqueeze(image, 0)
+    # Crop the image to the desired size
+    start_col = 32
+    crop_slices = (slice(0, cfg.crop_size), slice(start_col, start_col+cfg.crop_size))
+    input = image[:, :, crop_slices[0], crop_slices[1]]
+    # input = next(iter(train_dataloader))
+
+    input = input.to(device)
+    out = model(input)
+    codes, output, loss = out["codes"], out["outputs"], out["loss"]
+
+    # Detach tensors from GPU
+    input = input.cpu().detach()
+    output = output.cpu().detach()
+    loss = loss.cpu().detach()
+    codes = [c.cpu().detach() for c in codes]
+    code_img = create_code_img(codes, cfg.bottleneck)
+
+    writer.add_image('Images/Input Image', input[0,:,:], epoch, dataformats='CHW')
+    writer.add_image('Images/Output Image', output[0,:,:], epoch, dataformats='CHW')
+    writer.add_image('Images/Code Image', code_img, epoch, dataformats='CHW')
+
+    if img_out_dir is not None:
+        # Write output and code images to file
+        os.makedirs(img_out_dir, exist_ok=True)
+        # T.ToPILImage()(input[0,:,:]).save(os.path.join(img_out_dir, f"input_{epoch:03d}.png"))
+        T.ToPILImage()(output[0,:,:]).save(os.path.join(img_out_dir, f"output_{epoch:03d}.png"))
+        T.ToPILImage()(code_img).save(os.path.join(img_out_dir, f"code_{epoch:03d}.png"))
+
 def train(args):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     cfg, model = load_config_and_model(args, device)
@@ -82,9 +131,12 @@ def train(args):
     scheduler = CosineAnnealingWarmRestarts(optimizer,
                                             T_0=cfg.min_learning_rate_epoch,
                                             eta_min=cfg.min_learning_rate)
-    print("Learning rate initialized to {}".format(cfg.lr_init))
-    print("Torch log will be save in {}".format(os.path.join(cfg.train_output_dir,"")))
     writer = SummaryWriter(log_dir=os.path.join(cfg.train_output_dir,""))
+    eval_epoch_img_out_dir = os.path.join(cfg.train_output_dir, "eval_epoch")
+
+    print("Learning rate initialized to {}".format(cfg.lr_init))
+    print("Torch log will be saved in {}".format(os.path.join(cfg.train_output_dir,"")))
+    print("Eval epoch images will be saved in {}".format(eval_epoch_img_out_dir))
 
     step = 0
     start_epoch = 0
@@ -166,18 +218,7 @@ def train(args):
 
         # Metrics update on each training epoch
         print("End of epoch: {}".format(epoch))
-        input = next(iter(val_dataloader))
-        input = input.to(device)
-        out = model(input)
-        output, loss = out["outputs"], out["loss"]
-
-        # Detach tensors from GPU
-        input = input.cpu().detach()
-        output = output.cpu().detach()
-        loss = loss.cpu().detach()
-
-        writer.add_image('Images/Input Image', input[0,:,:], epoch, dataformats='CHW')
-        writer.add_image('Images/Output Image', output[0,:,:], epoch, dataformats='CHW')
+        write_eval_epoch_metrics(device, cfg, model, writer, epoch, train_dataset, eval_epoch_img_out_dir)
 
     torch.save(model.state_dict(), os.path.join(args.train_output_dir, 'final_model.pt'))
 
