@@ -30,7 +30,7 @@ compression_method: additive_lstm_demo
 
 rnn_compression:
     # weights path of RNN image compression model
-    weights_path: /ws/catkin_ws/models/lstm_demo_i32_b32.tar
+    weights_path: /ws/catkin_ws/models/lstm_demo_i16_b32/final_model.pt
     # weights_path: /ws/catkin_ws/models/demo_model.pt
 
     # Bottleneck size of the model for RNN models
@@ -39,7 +39,7 @@ rnn_compression:
     # Number of iterations for compression of RNN models
     # Fewer number of iterations leads to smaller compressed data size and lower compression quality.
     # num_iters: 32
-    num_iters: 32
+    num_iters: 16
 
     xla: True
     mixed_precision: False

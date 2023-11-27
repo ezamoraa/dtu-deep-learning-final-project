@@ -27,3 +27,5 @@ data/
 models.zip
 *_time.csv
 *_metrics.txt
+*.csv
+partial/

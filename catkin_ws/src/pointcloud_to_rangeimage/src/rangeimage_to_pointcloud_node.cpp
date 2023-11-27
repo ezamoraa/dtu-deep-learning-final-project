@@ -97,7 +97,7 @@ public:
                           _max_range(200),
                           it_(nh_),
                           nh_("~"),
-                          timing_utils_("/catkin_ws/range_image_to_pcl.csv")
+                          timing_utils_("/ws/catkin_ws/range_image_to_pcl.csv")
   {
     rangeImageSph_ = boost::shared_ptr<RIS>(new RIS);
     drsv_.reset(new RangeImageReconfServer(ros::NodeHandle("rangeimage_to_pointcloud_dynreconf")));

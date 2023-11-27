@@ -104,7 +104,7 @@ public:
                           it_r_(nh_),
                           it_i_(nh_),
                           nh_("~"),
-                          timing_utils_("/catkin_ws/pcl_to_range_image.csv")
+                          timing_utils_("/ws/catkin_ws/pcl_to_range_image.csv")
   {
     // Get parameters from configuration file.
     while (!nh_.getParam("/point_cloud_to_rangeimage/vlp_rpm", _vlp_rpm))

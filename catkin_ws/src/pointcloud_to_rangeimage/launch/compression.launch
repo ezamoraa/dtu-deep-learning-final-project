@@ -2,7 +2,7 @@
 
   <include file="$(find pointcloud_to_rangeimage)/launch/VLP-32C_driver.launch" />
 
-  <node pkg="rosbag" type="play" name="velodyne_rosbag" args="--clock -r 0.005 /ws/catkin_ws/rosbags/evaluation_frames.bag"/>
+  <node pkg="rosbag" type="play" name="velodyne_rosbag" args="--clock -r 0.1 /ws/catkin_ws/rosbags/evaluation_frames.bag"/>
   
   <!-- Load parameter from YAML file; subst_value="True"->you can use *find* in yaml-file -->
   <rosparam command ="load" file="$(find pointcloud_to_rangeimage)/params/pointcloud_to_rangeimage.yaml" subst_value="True"/>
@@ -35,7 +35,7 @@
     output="screen"		>
   </node>
 
-  <arg name="ouput_path" default="/ws/catkin_ws/snnrmse_metrics.txt"/>
+  <arg name="ouput_path" default="/ws/catkin_ws/snnrmse_metrics.csv"/>
   <node
     name="snnrmse"
     pkg="snnrmse"
